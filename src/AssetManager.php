@@ -22,7 +22,7 @@ class AssetManager {
 	 *
 	 * @var array
 	 */
-	protected $scripts = array();
+	protected static $scripts = array();
 
 	/**
 	 * Style assets.
@@ -31,7 +31,7 @@ class AssetManager {
 	 *
 	 * @var array
 	 */
-	protected $styles = array();
+	protected static $styles = array();
 
 	/**
 	 * Add script or style.
