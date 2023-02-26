@@ -1,0 +1,17 @@
+{
+  "name": "sagar/wp-asset-manager",
+  "description": "Asset manager for WordPress.",
+  "autoload": {
+      "psr-4": {
+          "Sagar\\AssetManager\\": "packages/wp-asset-manager"
+      }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require-dev": {
+    "composer/installers": "^2.0",
+    "dealerdirect/phpcodesniffer-composer-installer": "0.7.0",
+    "phpcompatibility/phpcompatibility-wp": "2.1.0",
+    "wp-coding-standards/wpcs": "^2.3"
+  }
+}
