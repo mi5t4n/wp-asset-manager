@@ -53,14 +53,14 @@ class Style extends Asset {
 	*/
 
 	/**
-	 * Return whether to enqueue the style before </body> instead of in the <head>
+	 * Return style media.
 	 *
 	 * @since x.x.x
 	 *
 	 * @return string
 	 */
-	public function get_in_footer() {
-		return $this->__get( 'in_footer ' );
+	public function get_media() {
+		return $this->__get( 'media ' );
 	}
 
 	/*
@@ -70,15 +70,15 @@ class Style extends Asset {
 	*/
 
 	/**
-	 * Set in footer  of the style.
+	 * Set media  of the style.
 	 *
 	 * @since x.x.x
 	 *
-	 * @param string $in_footer  Name of the style.
+	 * @param string $media Style media
 	 *
 	 * @return \Sagar\AssetManager\Style
 	 */
-	public function set_in_footer( $in_footer ) {
-		$this->__set( 'in_footer', $in_footer );
+	public function get_emdia( $media ) {
+		$this->__set( 'media', $media );
 	}
 }
