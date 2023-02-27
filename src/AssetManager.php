@@ -9,6 +9,7 @@
 
 namespace Sagar\AssetManager;
 
+use PO;
 use Sagar\AssetManager\Enums\Location;
 use Sagar\AssetManager\Abstracts\Asset;
 use Sagar\AssetManager\Enums\AssetType;
@@ -43,21 +44,14 @@ class AssetManager {
 	 * @param callable $callback
 	 * @param bool $register
 	 */
-	public static function add( Asset $asset, Location $location, callable $callback = null, bool $register = false ) {
-		$data = array(
-			'asset'    => $asset,
-			'location' => $location,
-			'callback' => $callback,
-			'register' => $register,
-		);
-
+	public static function add( Asset $asset ) {
 		if ( $asset instanceof Script ) {
-			self::$scripts[ $asset->get_handle() ][] = $data;
+			self::$scripts[ $asset->get_handle() ][] = $asset;
 		} elseif ( $asset instanceof Style ) {
-			self::$styles[ $asset->get_handle() ][] = $data;
+			self::$styles[ $asset->get_handle() ][] = $asset;
 		}
 
-		if ( $register ) {
+		if ( $asset->should_register() && is_string( $asset->get_src() ) ) {
 			self::register( $asset );
 		}
 	}
@@ -86,31 +80,30 @@ class AssetManager {
 	 * @since x.x.x
 	 *
 	 * @param string $handle
+	 * @param string $type Asset type.
+	 *
+	 * @return \Sagar\AssetManager\Abstracts\Asset
 	 */
-	public static function get( $handle, $type = AssetType::SCRIPT, $field = 'asset' ) {
-		$asset = null;
-
+	public static function get( $handle, $type = AssetType::SCRIPT ) {
 		if ( AssetType::SCRIPT === $type ) {
 			$asset = array_filter(
 				self::$scripts,
 				function( $script ) use ( $handle ) {
-					return $handle === $script['asset']->get_handle();
+					return $handle === $script->get_handle();
 				}
 			);
 		} elseif ( AssetType::STYLE === $type ) {
 			$asset = array_filter(
 				self::$styles,
 				function( $style ) use ( $handle ) {
-					return $handle === $style['asset']->get_handle();
+					return $handle === $style->get_handle();
 				}
 			);
+		} else {
+			$asset = null;
 		}
 
-		if ( isset( $asset[ $field ] ) ) {
-			return $asset[ $field ];
-		} else {
-			$asset;
-		}
+		return $asset;
 	}
 
 	/**
@@ -144,7 +137,9 @@ class AssetManager {
 	 *
 	 * @since x.x.x
 	 *
-	 * @param Asset $asset
+	 * @param \Sagar\AssetManager\Abstracts\Asset $asset
+	 *
+	 * @return boolean Whether the script has been registered. True on success, false on failure.
 	 */
 	public static function register( Asset $asset ) {
 		// Bail early if the function doesn't exists.
@@ -152,11 +147,19 @@ class AssetManager {
 			return false;
 		}
 
-		if ( $asset instanceof Script ) {
-			wp_register_script( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_in_footer() );
-		} elseif ( $asset instanceof Style ) {
-			wp_register_style( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_media() );
+		if ( ! is_string( $asset->get_callback() ) ) {
+			return false;
 		}
+
+		if ( $asset instanceof Script ) {
+			$registered = wp_register_script( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_in_footer() );
+		} elseif ( $asset instanceof Style ) {
+			$registered = wp_register_style( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_media() );
+		} else {
+			$registered = false;
+		}
+
+		return $registered;
 	}
 
 	/**
@@ -164,7 +167,7 @@ class AssetManager {
 	 *
 	 * @since x.x.x
 	 *
-	 * @param Asset $asset
+	 * @param \Sagar\AssetManager\Abstracts\Asset $asset
 	 */
 	public static function enqueue( Asset $asset ) {
 		// Bail early if the function doesn't exists.
@@ -172,12 +175,14 @@ class AssetManager {
 			return false;
 		}
 
-		if ( is_null( $asset['callback'] ) || ( is_callable( $asset['callback'] ) && call_user_func( $asset['callback'] ) ) ) {
-			if ( $asset instanceof Script ) {
-				wp_enqueue_script( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_in_footer() );
-			} elseif ( $asset instanceof Style ) {
-				wp_enqueue_style( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_media() );
-			}
+		if ( is_callable( $asset->get_callback() ) && false === call_user_func( $asset->get_callback() ) ) {
+			return false;
+		}
+
+		if ( $asset instanceof Script ) {
+			wp_enqueue_script( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_in_footer() );
+		} elseif ( $asset instanceof Style ) {
+			wp_enqueue_style( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_media() );
 		}
 	}
 
@@ -204,12 +209,12 @@ class AssetManager {
 		$scripts = array_filter(
 			self::$scripts,
 			function ( $script ) {
-				return Location::FRONTEND === $script['location'];
+				return Location::FRONTEND === $script->get_location();
 			}
 		);
 
 		foreach ( $scripts as $script ) {
-			self::enqueue( $script['asset'] );
+			self::enqueue( $script );
 		}
 	}
 
@@ -222,12 +227,12 @@ class AssetManager {
 		$scripts = array_filter(
 			self::$scripts,
 			function ( $script ) {
-				return Location::BACKEND === $script['location'];
+				return Location::BACKEND === $script->get_location();
 			}
 		);
 
 		foreach ( $scripts as $script ) {
-			self::enqueue( $script['asset'] );
+			self::enqueue( $script );
 		}
 	}
 
@@ -240,12 +245,12 @@ class AssetManager {
 		$styles = array_filter(
 			self::$styles,
 			function ( $script ) {
-				return Location::FRONTEND === $script['location'];
+				return Location::FRONTEND === $script->get_location();
 			}
 		);
 
 		foreach ( $styles as $style ) {
-			self::enqueue( $style['asset'] );
+			self::enqueue( $style );
 		}
 	}
 
@@ -258,12 +263,12 @@ class AssetManager {
 		$styles = array_filter(
 			self::$styles,
 			function ( $style ) {
-				return Location::BACKEND === $style['location'];
+				return Location::BACKEND === $style->get_location();
 			}
 		);
 
 		foreach ( $styles as $style ) {
-			self::enqueue( $style['asset'] );
+			self::enqueue( $style );
 		}
 	}
 }

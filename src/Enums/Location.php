@@ -17,6 +17,15 @@ class Location {
 	 *
 	 * @var string
 	 */
+	const ALL = 'all';
+
+	/**
+	 * Frontend location.
+	 *
+	 * @since x.x.x
+	 *
+	 * @var string
+	 */
 	const FRONTEND = 'frontend';
 
 	/**
