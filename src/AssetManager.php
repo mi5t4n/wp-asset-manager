@@ -51,7 +51,7 @@ class AssetManager {
 			self::$styles[ $asset->get_handle() ][] = $asset;
 		}
 
-		if ( $asset->should_register() && is_string( $asset->get_src() ) ) {
+		if ( $asset->should_register() ) {
 			self::register( $asset );
 		}
 	}
@@ -151,10 +151,12 @@ class AssetManager {
 			return false;
 		}
 
+		$src = is_callable( $asset->get_src() ) ? call_user_func_array( $asset->get_src(), array( $asset ) ) : $asset->get_src();
+
 		if ( $asset instanceof Script ) {
-			$registered = wp_register_script( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_in_footer() );
+			$registered = wp_register_script( $asset->get_handle(), $src, $asset->get_dependencies(), $asset->get_version(), $asset->get_in_footer() );
 		} elseif ( $asset instanceof Style ) {
-			$registered = wp_register_style( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_media() );
+			$registered = wp_register_style( $asset->get_handle(), $src, $asset->get_dependencies(), $asset->get_version(), $asset->get_media() );
 		} else {
 			$registered = false;
 		}
@@ -175,14 +177,16 @@ class AssetManager {
 			return false;
 		}
 
-		if ( is_callable( $asset->get_callback() ) && false === call_user_func( $asset->get_callback() ) ) {
+		if ( is_callable( $asset->get_callback() ) && false === call_user_func_array( $asset->get_callback(), array( $asset ) ) ) {
 			return false;
 		}
 
+		$src = is_callable( $asset->get_src() ) ? call_user_func_array( $asset->get_src(), array( $asset ) ) : $asset->get_src();
+
 		if ( $asset instanceof Script ) {
-			wp_enqueue_script( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_in_footer() );
+			wp_enqueue_script( $asset->get_handle(), $src, $asset->get_dependencies(), $asset->get_version(), $asset->get_in_footer() );
 		} elseif ( $asset instanceof Style ) {
-			wp_enqueue_style( $asset->get_handle(), $asset->get_src(), $asset->get_dependencies(), $asset->get_version(), $asset->get_media() );
+			wp_enqueue_style( $asset->get_handle(), $src, $asset->get_dependencies(), $asset->get_version(), $asset->get_media() );
 		}
 	}
 
